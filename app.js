@@ -36,7 +36,8 @@ app.all('*', function (req, res, next) {
 const cacheOptions = {
     namespace : 'chatgpt',
     adapter: 'redis',
-    store: new KeyvRedis(process.env.REDIS_CLIENT)
+    store: new KeyvRedis(process.env.REDIS_CLIENT),
+    ttl: 86400000
 }
 
 let clients = [];
