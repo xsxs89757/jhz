@@ -66,7 +66,7 @@ function eventsHandler(request, response) {
 
     setTimeout(() => {
         response.end()
-    }, 3 * 60 * 1000);
+    }, 10 * 60 * 1000);
   
     request.on('close', () => {
       console.log(`${clientId} Connection closed`);
