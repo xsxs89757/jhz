@@ -1,0 +1,23 @@
+{
+  "name": "chatgptapi",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@keyv/redis": "^2.5.6",
+    "body-parser": "^1.20.1",
+    "chatgpt": "^5.1.2",
+    "dotenv": "^16.0.3",
+    "expiry-map": "^2.0.0",
+    "express": "^4.18.2",
+    "keyv": "^4.5.2",
+    "winston": "^3.8.2",
+    "winston-daily-rotate-file": "^4.7.1"
+  }
+}
