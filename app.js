@@ -91,6 +91,7 @@ function sendEventsToAll(text, clientId) {
 const api = new ChatGPTAPI({ 
     apiKey: process.env.OPENAI_API_KEY,
     messageStore: new Keyv(cacheOptions),
+    debug: true
 })
 
 app.post("/chatgpt", async (req, res) => {
@@ -104,11 +105,12 @@ app.post("/chatgpt", async (req, res) => {
         }
 
         let params = {
-            systemMessage,
+            systemMessage:systemMessage,
             onProgress: (partialResponse) => {
                 sendEventsToAll(partialResponse.text, clientId)
-            }
+            },
         }
+        console.log(params)
         let response
         if (parentMessageId){
             response = await api.sendMessage(subject, {
