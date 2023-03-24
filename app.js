@@ -62,6 +62,10 @@ function eventsHandler(request, response) {
     };
   
     clients.push(newClient);
+
+    setTimeout(() => {
+        response.end()
+    }, 3 * 60 * 1000);
   
     request.on('close', () => {
       console.log(`${clientId} Connection closed`);
@@ -73,8 +77,12 @@ app.get('/events', eventsHandler);
 
 function sendEventsToAll(text, clientId) {
     clients.forEach((client)=>{
-        if(client.id === clientId){
+        if(client.id === clientId){    
             client.response.write(`${text}`)
+            if(text === '[DONE]'){
+                client.response.end()
+            }
+            
         }
     })
 }
