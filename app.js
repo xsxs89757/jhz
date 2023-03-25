@@ -95,15 +95,15 @@ app.post("/chatgpt", async (req, res) => {
     try{
         const parentMessageId = req?.body?.parent_message_id
         const clientId = req?.body?.client_id
-        const servers = req?.body?.servers
+        // const servers = req?.body?.servers
         const systemMessage = req?.body?.system_message
         let subject = req?.body?.subject
         if(!subject){
             return res.json({ code: 1, msg: 'subject error' })
         }
-        if(!servers){
-            return res.json({ code: 1, msg: 'servers error' })
-        }
+        // if(!servers){
+        //     return res.json({ code: 1, msg: 'servers error' })
+        // }
 
         let params = {
             systemMessage,
