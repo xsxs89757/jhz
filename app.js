@@ -52,10 +52,6 @@ function eventsHandler(request, response) {
     if(!clientId){
         return res.json({ code: 1, msg: 'clientId error' })
     }
-    response.sse({
-        event: 'connected',
-        data: ""
-    });
     const newClient = {
       id: clientId,
       response
