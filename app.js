@@ -1,12 +1,14 @@
 "use strict"
 import dotenv from "dotenv"
 import express from "express"
+import request from "superagent";
 import bodyParser from "body-parser";
 import * as winston from "winston";
 import 'winston-daily-rotate-file';
 import { ChatGPTAPI } from 'chatgpt'
 import Keyv from 'keyv'
 import KeyvRedis from '@keyv/redis'
+import sseExpress from 'sse-express'
 
 dotenv.config()
 const app = express()
@@ -72,14 +74,17 @@ function eventsHandler(request, response) {
       console.log(`${clientId} Connection closed`);
       clients = clients.filter(client => client.id !== clientId);
     });
-  }
+}
   
-app.get('/events', eventsHandler);
+app.get('/events', sseExpress(),eventsHandler);
 
 function sendEventsToAll(text, clientId) {
     clients.forEach((client)=>{
         if(client.id === clientId){    
-            client.response.write(`${text}`)
+            client.response.sse({
+                    event: 'message',
+                    data: `${text}`
+            })
             if(text === '[DONE]'){
                 client.response.end()
             }
@@ -97,10 +102,14 @@ app.post("/chatgpt", async (req, res) => {
     try{
         const parentMessageId = req?.body?.parent_message_id
         const clientId = req?.body?.client_id
+        const servers = req?.body?.servers
         const systemMessage = req?.body?.system_message
         let subject = req?.body?.subject
         if(!subject){
             return res.json({ code: 1, msg: 'subject error' })
+        }
+        if(!servers){
+            return res.json({ code: 1, msg: 'servers error' })
         }
 
         let params = {
@@ -109,21 +118,27 @@ app.post("/chatgpt", async (req, res) => {
                 sendEventsToAll(partialResponse.text, clientId)
             },
         }
-        let response
-        if (parentMessageId){
-            response = await api.sendMessage(subject, {
-                parentMessageId,
-                ...params
+        api.sendMessage(subject, {
+            parentMessageId,
+            ...params
+        }).then(response => {
+            request.post(process.env.ASYBCHRONOUS_NOTIFICATION)
+            .field('uuid', req.body.clientId)
+            .field('content', response.text)
+            .field('parent_message_id', response.id)
+            .then(res => {
+                
+            }).finally(() => {
+                // 异步通知结束
+                sendEventsToAll("[DONE]", clientId)
             })
-        }else{
-            response = await api.sendMessage(subject, params)
-        }
-        sendEventsToAll("[DONE]", clientId)
-        return res.json({ code: 0, msg:'success' , data: {
-            content : response.text,
-            parent_message_id : response.id,
-            server: 1
-        }})
+            
+        }).catch(err => {
+            logger.error("ERROR_TIME:"+getCurrentTime())
+            logger.error("ERROR:" + err.toString())
+            logger.error("--------------------------------")
+        })
+        return res.json({ code: 0, msg:'success'})
     }catch(err){
         logger.error("ERROR_TIME:"+getCurrentTime())
         logger.error("ERROR:" + err.toString())
