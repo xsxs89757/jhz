@@ -116,7 +116,7 @@ app.post("/chatgpt", async (req, res) => {
             ...params
         }).then(response => {
             request.post(process.env.ASYBCHRONOUS_NOTIFICATION)
-            .field('uuid', req.body.clientId)
+            .field('uuid', clientId)
             .field('content', response.text)
             .field('parent_message_id', response.id)
             .then(res => {
