@@ -56,9 +56,17 @@ function eventsHandler(request, response) {
       id: clientId,
       response
     };
-  
+    
     clients.push(newClient);
+    for(let i = 0; i < 10000; i++){
+        response.sse({
+            event: 'message',
+            data: `${i}`
+        })
+    }
 
+    response.end()
+    
     setTimeout(() => {
         response.end()
     }, 10 * 60 * 1000);
