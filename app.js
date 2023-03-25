@@ -58,11 +58,6 @@ function eventsHandler(request, response) {
     };
     
     clients.push(newClient);
-    for(let i = 0; i < 10000; i++){
-        sendEventsToAll(i, clientId)
-    }
-
-    response.end()
     
     setTimeout(() => {
         response.end()
@@ -79,6 +74,10 @@ app.get('/events', sseExpress(),eventsHandler);
 function sendEventsToAll(text, clientId) {
     clients.forEach((client)=>{
         if(client.id === clientId){    
+            console.log({
+                    event: 'message',
+                    data: `${text}`
+            })
             client.response.sse({
                     event: 'message',
                     data: `${text}`
