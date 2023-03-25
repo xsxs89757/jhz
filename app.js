@@ -52,13 +52,10 @@ function eventsHandler(request, response) {
     if(!clientId){
         return res.json({ code: 1, msg: 'clientId error' })
     }
-    const headers = {
-      'Content-Type': 'text/event-stream',
-      'Connection': 'keep-alive',
-      'Cache-Control': 'no-cache'
-    };
-    response.writeHead(200, headers);
-  
+    response.sse({
+        event: 'connected',
+        data: ""
+    });
     const newClient = {
       id: clientId,
       response
