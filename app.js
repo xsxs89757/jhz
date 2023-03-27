@@ -76,7 +76,10 @@ function sendEventsToAll(text, clientId) {
         if(client.id === clientId){    
             client.response.sse({
                     event: 'message',
-                    data: `${text}`,
+                    data: {
+                        answer: text,
+                        uuid: clientId
+                    },
                     id: Date.now()
             })
             if(text === '[DONE]'){
