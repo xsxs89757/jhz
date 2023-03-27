@@ -74,11 +74,6 @@ app.get('/events', sseExpress(),eventsHandler);
 function sendEventsToAll(text, clientId) {
     clients.forEach((client)=>{
         if(client.id === clientId){    
-            console.log({
-                    event: 'message',
-                    data: `${text}`,
-                    id: Date.now()
-            })
             client.response.sse({
                     event: 'message',
                     data: `${text}`,
