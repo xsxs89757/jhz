@@ -94,6 +94,11 @@ const api = new ChatGPTAPI({
     apiKey: process.env.OPENAI_API_KEY,
     messageStore: new Keyv(cacheOptions)
 })
+const currentDate = (new Date()).toISOString().split("T")[0];
+const _systemMessage = `You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as possible.
+Knowledge cutoff: 2021-09-01
+Current date: ${currentDate}
+`
 
 app.post("/chatgpt", async (req, res) => {
     try{
@@ -110,7 +115,7 @@ app.post("/chatgpt", async (req, res) => {
         // }
 
         let params = {
-            systemMessage,
+            systemMessage : _systemMessage + systemMessage,
             onProgress: (partialResponse) => {
                 sendEventsToAll(partialResponse.text, clientId)
             },
