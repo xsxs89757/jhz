@@ -139,6 +139,8 @@ app.post("/chatgpt", async (req, res) => {
             logger.error("ERROR_TIME:"+getCurrentTime())
             logger.error("ERROR:" + err.toString())
             logger.error("--------------------------------")
+            // 异步通知结束
+            sendEventsToAll("[DONE]", clientId)
         })
         return res.json({ code: 0, msg:'success'})
     }catch(err){
