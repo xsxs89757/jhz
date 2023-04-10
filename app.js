@@ -124,20 +124,22 @@ app.post("/chatgpt", async (req, res) => {
             parentMessageId,
             ...params
         }).then(response => {
+            sendEventsToAll("[DONE]", clientId)
             request.post(process.env.ASYBCHRONOUS_NOTIFICATION)
             .field('uuid', clientId)
             .field('content', response.text)
             .field('parent_message_id', response.id)
             .then(res => {
                 
-            }).finally(() => {
-                // 异步通知结束
-                sendEventsToAll("[DONE]", clientId)
+            }).catch(err => {
+                logger.error("REQUEST_ERROR_TIME:"+getCurrentTime())
+                logger.error("REQUEST_ERROR:" + err.toString())
+                logger.error("--------------------------------")
             })
             
         }).catch(err => {
-            logger.error("ERROR_TIME:"+getCurrentTime())
-            logger.error("ERROR:" + err.toString())
+            logger.error("API_ERROR_TIME:"+getCurrentTime())
+            logger.error("API_ERROR:" + err.toString())
             logger.error("--------------------------------")
             // 异步通知结束
             sendEventsToAll("[DONE]", clientId)
