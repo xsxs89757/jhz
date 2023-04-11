@@ -8,7 +8,6 @@ import 'winston-daily-rotate-file';
 import { ChatGPTAPI } from 'chatgpt'
 import Keyv from 'keyv'
 import KeyvRedis from '@keyv/redis'
-import sseExpress from 'sse-express'
 
 dotenv.config()
 const app = express()
@@ -49,8 +48,6 @@ app.get("/status", (req, res) => res.json({ clients: clients.length }));
 app.get("/events", (req, res) => {
     eventsHandler(req, res);
 });
-
-app.get('/events', sseExpress(), eventsHandler);
 
 function eventsHandler(req, res) {
     const clientId = req.query.id;
