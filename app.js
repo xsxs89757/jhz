@@ -36,7 +36,7 @@ app.all('*', function (req, res, next) {
 })
 
 const cacheOptions = {
-    namespace : 'chatgpt',
+    namespace: 'chatgpt',
     adapter: 'redis',
     store: new KeyvRedis(process.env.REDIS_CLIENT),
     // ttl: 86400000
@@ -44,52 +44,84 @@ const cacheOptions = {
 
 let clients = [];
 
+app.get("/status", (req, res) => res.json({ clients: clients.length }));
 
-app.get('/status', (request, response) => response.json({clients: clients.length}));
+app.get("/events", (req, res) => {
+    eventsHandler(req, res);
+});
 
-function eventsHandler(request, response) {
-    const  clientId = request.query?.id
-    if(!clientId){
-        return res.json({ code: 1, msg: 'clientId error' })
+app.get('/events', sseExpress(), eventsHandler);
+
+function eventsHandler(req, res) {
+    const clientId = req.query.id;
+    if (!clientId) {
+        return res.json({ code: 1, msg: "clientId error" });
     }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
     const newClient = {
-      id: clientId,
-      response
+        id: clientId,
+        response: res,
     };
-    
+
     clients.push(newClient);
-  
-    request.on('close', () => {
-      console.log(`${clientId} Connection closed`);
-      clients = clients.filter(client => client.id !== clientId);
+
+    req.on("close", () => {
+        console.log(`${clientId} Connection closed`);
+        clients = clients.filter((client) => client.id !== clientId);
     });
 }
-  
-app.get('/events', sseExpress(),eventsHandler);
-
 function sendEventsToAll(text, clientId) {
-    clients.forEach((client)=>{
-        if(client.id === clientId){    
-            client.response.sse({
-                    event: 'message',
-                    data: {
-                        answer: text,
-                        uuid: clientId
-                    },
-                    id: Date.now()
-            })
-            if(text === '[DONE]'){
-                client.response.end()
-            }
-            
+    clients.forEach((client) => {
+      if (client.id === clientId) {
+        client.response.write(`event: message\n`);
+        client.response.write(`data: ${JSON.stringify({ answer: text, uuid: clientId })}\n\n`);
+  
+        if (text === "[DONE]") {
+          client.response.end();
         }
-    })
+      }
+    });
+  }
+  
+
+async function sendMessageAndNotify(clientId, subject, parentMessageId, systemMessage) {
+    try {
+        const response = await api.sendMessage(subject, {
+            parentMessageId,
+            systemMessage,
+            onProgress: (partialResponse) => {
+                sendEventsToAll(partialResponse.text, clientId);
+            },
+        });
+
+        sendEventsToAll("[DONE]", clientId);
+
+        await request
+            .post(process.env.ASYBCHRONOUS_NOTIFICATION)
+            .field("uuid", clientId)
+            .field("content", response.text)
+            .field("parent_message_id", response.id);
+
+    } catch (err) {
+        console.log(err);
+        logger.error("API_ERROR_TIME:" + getCurrentTime());
+        logger.error("API_ERROR:" + err.toString());
+        logger.error("--------------------------------");
+
+        sendEventsToAll("[DONE]", clientId);
+    }
 }
 
-const api = new ChatGPTAPI({ 
+const api = new ChatGPTAPI({
     apiKey: process.env.OPENAI_API_KEY,
     messageStore: new Keyv(cacheOptions)
 })
+
 // const currentDate = (new Date()).toISOString().split("T")[0];
 // const _systemMessage = `You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as possible.
 // Knowledge cutoff: 2021-09-01
@@ -97,58 +129,25 @@ const api = new ChatGPTAPI({
 // `
 
 app.post("/chatgpt", async (req, res) => {
-    try{
+    try {
         const parentMessageId = req?.body?.parent_message_id
         const clientId = req?.body?.client_id
-        // const servers = req?.body?.servers
         const systemMessage = req?.body?.system_message
         let subject = req?.body?.subject
-        if(!subject){
+        if (!subject) {
             return res.json({ code: 1, msg: 'subject error' })
         }
-        // if(!servers){
-        //     return res.json({ code: 1, msg: 'servers error' })
-        // }
+        sendMessageAndNotify(clientId, subject, parentMessageId, systemMessage);
 
-        let params = {
-            systemMessage : systemMessage,
-            onProgress: (partialResponse) => {
-                sendEventsToAll(partialResponse.text, clientId)
-            },
-        }
-        api.sendMessage(subject, {
-            parentMessageId,
-            ...params
-        }).then(response => {
-            sendEventsToAll("[DONE]", clientId)
-            request.post(process.env.ASYBCHRONOUS_NOTIFICATION)
-            .field('uuid', clientId)
-            .field('content', response.text)
-            .field('parent_message_id', response.id)
-            .then(res => {
-                
-            }).catch(err => {
-                logger.error("REQUEST_ERROR_TIME:"+getCurrentTime())
-                logger.error("REQUEST_ERROR:" + err.toString())
-                logger.error("--------------------------------")
-            })
-            
-        }).catch(err => {
-            logger.error("API_ERROR_TIME:"+getCurrentTime())
-            logger.error("API_ERROR:" + err.toString())
-            logger.error("--------------------------------")
-            // 异步通知结束
-            sendEventsToAll("[DONE]", clientId)
-        })
-        return res.json({ code: 0, msg:'success'})
-    }catch(err){
-        logger.error("ERROR_TIME:"+getCurrentTime())
+        return res.json({ code: 0, msg: 'success' })
+    } catch (err) {
+        logger.error("ERROR_TIME:" + getCurrentTime())
         logger.error("ERROR:" + err.toString())
         logger.error("--------------------------------")
         console.log(err)
         return res.json({ code: 1, msg: "服务繁忙,请重试" })
     }
-    
+
 })
 
 
@@ -164,18 +163,18 @@ function getCurrentTime() {
     var hour = zeroFill(date.getHours());//时
     var minute = zeroFill(date.getMinutes());//分
     var second = zeroFill(date.getSeconds());//秒
-    
+
     //当前时间
     var curTime = date.getFullYear() + "-" + month + "-" + day
-            + " " + hour + ":" + minute + ":" + second;
-    
+        + " " + hour + ":" + minute + ":" + second;
+
     return curTime;
 }
 
 /**
  * 补零
  */
-function zeroFill(i){
+function zeroFill(i) {
     if (i >= 0 && i <= 9) {
         return "0" + i;
     } else {
