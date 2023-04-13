@@ -120,11 +120,10 @@ const api = new ChatGPTAPI({
     // maxModelTokens: 2000
 })
 
-// const currentDate = (new Date()).toISOString().split("T")[0];
-// const _systemMessage = `You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as possible.
-// Knowledge cutoff: 2021-09-01
-// Current date: ${currentDate}
-// `
+const currentDate = (new Date()).toISOString().split("T")[0];
+const _systemMessage = `
+Current date: ${currentDate}
+`
 
 app.post("/chatgpt", async (req, res) => {
     try {
@@ -135,7 +134,7 @@ app.post("/chatgpt", async (req, res) => {
         if (!subject) {
             return res.json({ code: 1, msg: 'subject error' })
         }
-        sendMessageAndNotify(clientId, subject, parentMessageId, systemMessage);
+        sendMessageAndNotify(clientId, subject, parentMessageId, systemMessage + _systemMessage);
 
         return res.json({ code: 0, msg: 'success' })
     } catch (err) {
