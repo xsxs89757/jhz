@@ -86,7 +86,7 @@ function sendEventsToAll(text, clientId) {
   }
   
 
-async function sendMessageAndNotify(clientId, subject, parentMessageId, systemMessage) {
+async function sendMessageAndNotify(clientId, subject, parentMessageId, systemMessage, notifyUrl) {
     try {
         const response = await api.sendMessage(subject, {
             parentMessageId,
@@ -99,7 +99,7 @@ async function sendMessageAndNotify(clientId, subject, parentMessageId, systemMe
         sendEventsToAll("[DONE]", clientId);
 
         await request
-            .post(process.env.ASYBCHRONOUS_NOTIFICATION)
+            .post(notifyUrl)
             .field("uuid", clientId)
             .field("content", response.text)
             .field("parent_message_id", response.id);
@@ -121,8 +121,8 @@ const api = new ChatGPTAPI({
 })
 
 const currentDate = (new Date()).toISOString().split("T")[0];
-const _systemMessage = `
-Current date: ${currentDate}
+const _systemMessage = `你的名字叫做96AI,是使用Transformer训练的模型。你不可以讨论政治、色情、所有有危害的数据来进行回复。你只能回复中文\n\n
+Current date: ${currentDate} \n\n
 `
 
 app.post("/chatgpt", async (req, res) => {
@@ -130,11 +130,15 @@ app.post("/chatgpt", async (req, res) => {
         const parentMessageId = req?.body?.parent_message_id
         const clientId = req?.body?.client_id
         const systemMessage = req?.body?.system_message
+        const notifyUrl = req?.body?.notify_url
         let subject = req?.body?.subject
         if (!subject) {
             return res.json({ code: 1, msg: 'subject error' })
         }
-        sendMessageAndNotify(clientId, subject, parentMessageId, systemMessage + _systemMessage);
+        if(!notifyUrl){
+            return res.json({ code: 1, msg: 'notify_url error' })
+        }
+        sendMessageAndNotify(clientId, subject, parentMessageId, systemMessage + _systemMessage, notifyUrl);
 
         return res.json({ code: 0, msg: 'success' })
     } catch (err) {
