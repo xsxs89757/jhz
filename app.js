@@ -117,7 +117,12 @@ async function sendMessageAndNotify(clientId, subject, parentMessageId, systemMe
 const api = new ChatGPTAPI({
     apiKey: process.env.OPENAI_API_KEY,
     messageStore: new Keyv(cacheOptions),
-    // maxModelTokens: 2000
+    completionParams: {
+        model: 'gpt-3.5-turbo-16k',
+        temperature: 0.5,
+        top_p: 0.8
+    },
+    maxModelTokens: 16000
 })
 
 const currentDate = (new Date()).toISOString().split("T")[0];
